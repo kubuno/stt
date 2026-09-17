@@ -1,0 +1,92 @@
+name: Build
+# KEEP-BESPOKE — not generated from _tools/packaging/module_build.yml.
+# The Speech-to-Text module links libvosk (a prebuilt shared library) and builds
+# whisper.cpp, so its Linux .kbpkg needs that native setup the generic template
+# does not provide. It also has no frontend. Keep this file; deploy_packaging.sh
+# skips regenerating a build.yml carrying the KEEP-BESPOKE marker.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  VOSK_VER: "0.3.45"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # ── libvosk (link-time + runtime shared library) ──
+      # Downloaded, not apt-installed: Vosk ships a prebuilt .so on GitHub. The
+      # Vosk MODELS are not bundled — they are provisioned on the host by
+      # _tools/setup-stt.sh; the .kbpkg carries only the binary.
+      - name: install libvosk
+        run: |
+          tmp="$(mktemp -d)"
+          curl -fL "https://github.com/alphacep/vosk-api/releases/download/v${VOSK_VER}/vosk-linux-x86_64-${VOSK_VER}.zip" -o "$tmp/v.zip"
+          unzip -q "$tmp/v.zip" -d "$tmp"
+          sudo cp "$tmp/vosk-linux-x86_64-${VOSK_VER}/libvosk.so" /usr/local/lib/
+          sudo cp "$tmp/vosk-linux-x86_64-${VOSK_VER}/vosk_api.h" /usr/local/include/ 2>/dev/null || true
+          sudo ldconfig
+          rm -rf "$tmp"
+
+      # ── Backend (Rust) — whisper.cpp is built by whisper-rs (cmake preinstalled) ──
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo build
+        env:
+          SQLX_OFFLINE: "true"
+          RUSTFLAGS: "-L /usr/local/lib"
+        run: cargo build --release --bin kubuno-stt
+
+      # ── Paquet Kubuno (.kbpkg) ──
+      # The one format a module ships and the server installs, identical on
+      # every system. This module has no frontend (internal voice-search backend),
+      # which build_kbpkg.sh handles: the package carries the binary and manifest.
+      # No Debian package is produced any more.
+      - name: build .kbpkg
+        env:
+          RUSTFLAGS: "-L /usr/local/lib"
+        run: bash build_kbpkg.sh --skip-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kubuno-stt-kbpkg
+          path: dist/*.kbpkg
+      # Release notes come from CHANGELOG.md (section stamped by _tools/release.sh),
+      # not from a commit summary: they are written when the change is made.
+      - name: extract release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          python3 - "${GITHUB_REF_NAME#v}" << 'PY'
+          import re, sys, pathlib
+          version = sys.argv[1]
+          src = pathlib.Path('CHANGELOG.md')
+          notes = ''
+          if src.exists():
+              text = src.read_text(encoding='utf-8')
+              m = re.search(rf'^## \[{re.escape(version)}\][^\n]*$', text, re.M)
+              if m:
+                  rest = text[m.end():]
+                  nxt = re.search(r'^## \[', rest, re.M)
+                  chunk = rest[:nxt.start()] if nxt else rest
+                  notes = re.sub(r'(?m)^\[[^\]]+\]:\s*http\S*$', '', chunk).strip()
+          pathlib.Path('RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
+          print(notes or '(no notes for this version)')
+          PY
+
+      # ── Release (sur tag) ──
+      - name: release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.kbpkg
+          body_path: RELEASE_NOTES.md

@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────
+# Kubuno — fichiers NON versionnés (artefacts de build, données, secrets)
+# Seul le CODE SOURCE est committé. Régénérables = exclus.
+# ─────────────────────────────────────────────────────────────
+
+# Rust — artefacts de compilation
+/target/
+**/target/
+
+# Node — dépendances
+node_modules/
+**/node_modules/
+
+# Frontend — sorties de build
+/frontend/dist/
+/frontend/dist-modules/
+
+# Paquets Debian générés
+/dist/
+*.deb
+
+# build_deb.sh — état local
+/.build_state
+/.build_number
+
+# Données d'exécution & logs
+/data/
+nohup.out
+*.log
+
+# Secrets & config locale (on garde uniquement les .example)
+.env
+.env.*
+!.env.example
+/config.toml
+!config.toml.example
+*.pem
+*.key
+*.p12
+*.keystore
+
+# État local de l'agent / éditeurs
+/.claude/
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# NB volontairement VERSIONNÉS : Cargo.lock, .sqlx/ (cache requêtes sqlx,
+# nécessaire pour compiler sans base de données en CI), migrations/, themes/, man/
+
+node_modules
+
+# Claude Code working files (agent instructions & memory) — never published
+CLAUDE.md
+AGENTS.md
+.claude/

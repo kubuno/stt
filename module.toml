@@ -1,0 +1,24 @@
+[module]
+id            = "stt"
+display_name  = "Speech-to-Text"
+version       = "0.1.0"
+description   = "Reconnaissance vocale auto-hébergée (Vosk) — alimente la recherche vocale du core"
+author        = "Kubuno Contributors"
+license       = "AGPL-3.0"
+runtime       = "rust"
+# Infrastructure interne (recherche vocale du core) : enregistré pour le routage,
+# mais masqué de la liste des modules de l'administration.
+internal      = true
+
+[process]
+entrypoint = "kubuno-stt"
+args       = []
+
+[server]
+host = "127.0.0.1"
+port = 3122
+
+[routes]
+patterns = [
+    { method = "*", path = "/*" },
+]
