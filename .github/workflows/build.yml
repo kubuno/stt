@@ -1,9 +1,9 @@
 name: Build
 # KEEP-BESPOKE — not generated from _tools/packaging/module_build.yml.
-# The Speech-to-Text module links libvosk (a prebuilt shared library) and builds
-# whisper.cpp, so its Linux .kbpkg needs that native setup the generic template
-# does not provide. It also has no frontend. Keep this file; deploy_packaging.sh
-# skips regenerating a build.yml carrying the KEEP-BESPOKE marker.
+# The Speech-to-Text module builds whisper.cpp from source, so its Linux .kbpkg
+# needs a native setup the generic template does not provide. It also has no
+# frontend. Keep this file; deploy_packaging.sh skips regenerating a build.yml
+# carrying the KEEP-BESPOKE marker.
 
 on:
   push:
@@ -12,8 +12,6 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  VOSK_VER: "0.3.45"
 
 jobs:
   build:
@@ -23,20 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-
-      # ── libvosk (link-time + runtime shared library) ──
-      # Downloaded, not apt-installed: Vosk ships a prebuilt .so on GitHub. The
-      # Vosk MODELS are not bundled — they are provisioned on the host by
-      # _tools/setup-stt.sh; the .kbpkg carries only the binary.
-      - name: install libvosk
-        run: |
-          tmp="$(mktemp -d)"
-          curl -fL "https://github.com/alphacep/vosk-api/releases/download/v${VOSK_VER}/vosk-linux-x86_64-${VOSK_VER}.zip" -o "$tmp/v.zip"
-          unzip -q "$tmp/v.zip" -d "$tmp"
-          sudo cp "$tmp/vosk-linux-x86_64-${VOSK_VER}/libvosk.so" /usr/local/lib/
-          sudo cp "$tmp/vosk-linux-x86_64-${VOSK_VER}/vosk_api.h" /usr/local/include/ 2>/dev/null || true
-          sudo ldconfig
-          rm -rf "$tmp"
 
       # ── Backend (Rust) — whisper.cpp is built by whisper-rs (cmake preinstalled) ──
       - uses: dtolnay/rust-toolchain@stable

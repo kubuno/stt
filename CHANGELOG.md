@@ -9,6 +9,13 @@ number at release time, and CI publishes that section as the GitHub Release note
 
 ## [Unreleased]
 
+### Removed
+
+- **The build no longer downloads the Vosk shared library.** The engine was
+  dropped in 0.1.0 but the release pipeline still fetched its library on every
+  run, making each build depend on a third-party download it had no use for.
+
+
 ## [0.1.1] - 2026-09-18
 
 ### Security
