@@ -9,6 +9,11 @@ number at release time, and CI publishes that section as the GitHub Release note
 
 ## [Unreleased]
 
+### Fixed
+
+- **The module's description names the engine it actually runs.** It still
+  said Vosk, which was removed when the module became Whisper-only.
+
 ### Removed
 
 - **The build no longer downloads the Vosk shared library.** The engine was

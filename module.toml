@@ -2,7 +2,7 @@
 id            = "stt"
 display_name  = "Speech-to-Text"
 version       = "0.1.1"
-description   = "Reconnaissance vocale auto-hébergée (Vosk) — alimente la recherche vocale du core"
+description   = "Reconnaissance vocale auto-hébergée (Whisper) — alimente la recherche vocale du core"
 author        = "Kubuno Contributors"
 license       = "AGPL-3.0"
 runtime       = "rust"

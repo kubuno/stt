@@ -39,8 +39,7 @@ nohup.out
 *.p12
 *.keystore
 
-# État local de l'agent / éditeurs
-/.claude/
+# Local editor state
 .DS_Store
 .idea/
 .vscode/
@@ -51,7 +50,3 @@ nohup.out
 
 node_modules
 
-# Claude Code working files (agent instructions & memory) — never published
-CLAUDE.md
-AGENTS.md
-.claude/
