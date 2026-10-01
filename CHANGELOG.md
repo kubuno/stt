@@ -11,6 +11,11 @@ number at release time, and CI publishes that section as the GitHub Release note
 
 ### Fixed
 
+- **Identical files on every OS.** The repository now pins line endings to LF
+  (`.gitattributes`), so a checkout on Windows no longer turns scripts,
+  manifests or sources into CRLF, and what is built or packaged from it is the
+  same whichever OS checks it out.
+
 - **The module's description names the engine it actually runs.** It still
   said Vosk, which was removed when the module became Whisper-only.
 
