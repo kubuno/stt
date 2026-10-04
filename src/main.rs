@@ -6,6 +6,7 @@
 //! Whisper is multilingual — one model serves every language. Models are
 //! downloaded/deleted on demand; audio never leaves the server.
 
+mod auth;
 mod catalog;
 mod text;
 
@@ -18,10 +19,10 @@ use axum::{
     body::Bytes,
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     extract::{DefaultBodyLimit, Path as AxPath, Query, State},
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, post},
-    Json, Router,
+    Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -407,15 +408,12 @@ fn whisper_stream_worker(
 }
 
 // ── Admin API (role-gated) ───────────────────────────────────────────────────
-fn require_admin(headers: &HeaderMap) -> Result<(), Response> {
-    let role = headers.get("x-kubuno-user-role").and_then(|v| v.to_str().ok()).unwrap_or("");
-    if role == "admin" { Ok(()) }
-    else { Err((StatusCode::FORBIDDEN, Json(json!({ "error": "admin only" }))).into_response()) }
-}
+// The role is the one carried by the verified identity token (`auth::Caller`).
+use auth::admin_denied;
 use axum::response::Response;
 
-async fn admin_catalog(State(state): State<AppState>, headers: HeaderMap) -> Response {
-    if let Err(r) = require_admin(&headers) { return r; }
+async fn admin_catalog(State(state): State<AppState>, Extension(caller): Extension<auth::Caller>) -> Response {
+    if let Some(r) = admin_denied(&caller) { return r; }
     let langs: Vec<_> = catalog::languages().into_iter()
         .map(|(c, l)| json!({ "code": c, "label": l })).collect();
     Json(json!({
@@ -432,8 +430,8 @@ async fn admin_catalog(State(state): State<AppState>, headers: HeaderMap) -> Res
 #[derive(Deserialize)]
 struct SetEnabledDto { enabled: bool }
 
-async fn admin_set_enabled(State(state): State<AppState>, headers: HeaderMap, Json(dto): Json<SetEnabledDto>) -> Response {
-    if let Err(r) = require_admin(&headers) { return r; }
+async fn admin_set_enabled(State(state): State<AppState>, Extension(caller): Extension<auth::Caller>, Json(dto): Json<SetEnabledDto>) -> Response {
+    if let Some(r) = admin_denied(&caller) { return r; }
     {
         let mut e = state.enabled.lock().expect("enabled poisoned");
         *e = dto.enabled;
@@ -459,8 +457,8 @@ struct SetCfgDto {
     auto_detect: Option<bool>,
 }
 
-async fn admin_set_config(State(state): State<AppState>, headers: HeaderMap, Json(dto): Json<SetCfgDto>) -> Response {
-    if let Err(r) = require_admin(&headers) { return r; }
+async fn admin_set_config(State(state): State<AppState>, Extension(caller): Extension<auth::Caller>, Json(dto): Json<SetCfgDto>) -> Response {
+    if let Some(r) = admin_denied(&caller) { return r; }
     {
         let mut cfg = state.config.lock().expect("cfg");
         let entry = cfg.entry(dto.lang.clone()).or_insert_with(|| LangCfg::whisper(String::new()));
@@ -486,8 +484,8 @@ struct SetSettingsDto {
     profanity_filter: Option<bool>,
 }
 
-async fn admin_set_settings(State(state): State<AppState>, headers: HeaderMap, Json(dto): Json<SetSettingsDto>) -> Response {
-    if let Err(r) = require_admin(&headers) { return r; }
+async fn admin_set_settings(State(state): State<AppState>, Extension(caller): Extension<auth::Caller>, Json(dto): Json<SetSettingsDto>) -> Response {
+    if let Some(r) = admin_denied(&caller) { return r; }
     {
         let mut s = state.settings.lock().expect("settings");
         if let Some(v) = dto.silence_ms       { s.silence_ms = v.clamp(500, 30_000); }
@@ -501,8 +499,8 @@ async fn admin_set_settings(State(state): State<AppState>, headers: HeaderMap, J
 #[derive(Deserialize)]
 struct DownloadDto { engine: String, model: String }
 
-async fn admin_download(State(state): State<AppState>, headers: HeaderMap, Json(dto): Json<DownloadDto>) -> Response {
-    if let Err(r) = require_admin(&headers) { return r; }
+async fn admin_download(State(state): State<AppState>, Extension(caller): Extension<auth::Caller>, Json(dto): Json<DownloadDto>) -> Response {
+    if let Some(r) = admin_denied(&caller) { return r; }
     let key = format!("{}/{}", dto.engine, dto.model);
     let Some(url) = catalog::model_url(&dto.engine, &dto.model) else {
         return (StatusCode::BAD_REQUEST, Json(json!({ "error": "unknown model" }))).into_response();
@@ -553,8 +551,12 @@ async fn download_inner(state: &AppState, key: &str, url: &str, model: &str) -> 
     Ok(())
 }
 
-async fn admin_delete(State(state): State<AppState>, headers: HeaderMap, AxPath((engine, model)): AxPath<(String, String)>) -> Response {
-    if let Err(r) = require_admin(&headers) { return r; }
+async fn admin_delete(State(state): State<AppState>, Extension(caller): Extension<auth::Caller>, AxPath((engine, model)): AxPath<(String, String)>) -> Response {
+    if let Some(r) = admin_denied(&caller) { return r; }
+    // The model name becomes a file name: no separator, no `..`.
+    if !auth::is_safe_name(&engine) || !auth::is_safe_name(&model) {
+        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "bad model name" }))).into_response();
+    }
     let path = match engine.as_str() {
         "whisper" => whisper_dir(&state).join(format!("{model}.bin")),
         _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "bad engine" }))).into_response(),
@@ -635,10 +637,15 @@ async fn main() -> anyhow::Result<()> {
 
     let core_url = std::env::var("KUBUNO_CORE_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".into());
     let secret   = std::env::var("KUBUNO_INTERNAL_SECRET").unwrap_or_default();
+    if secret.is_empty() {
+        tracing::error!("stt: KUBUNO_INTERNAL_SECRET is not set, every request but /health will be refused");
+    }
+    let auth_secret = Arc::new(secret.clone());
     tokio::spawn(register_loop(core_url, secret));
 
-    let app = Router::new()
-        .route("/health", get(health))
+    // Everything but `/health` requires the core's signed identity token
+    // (`auth::require_auth`), the `/stream` WebSocket handshake included.
+    let authed = Router::new()
         .route("/status", get(status))
         .route("/stream", get(stream_handler))
         .route("/transcribe", post(transcribe_handler))
@@ -648,6 +655,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/admin/config", post(admin_set_config))
         .route("/admin/models/download", post(admin_download))
         .route("/admin/models/:engine/:model", delete(admin_delete))
+        .layer(axum::middleware::from_fn_with_state(auth_secret, auth::require_auth));
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .merge(authed)
         .layer(DefaultBodyLimit::max(25 * 1024 * 1024))
         .with_state(state);
 

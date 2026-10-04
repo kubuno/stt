@@ -9,6 +9,17 @@ number at release time, and CI publishes that section as the GitHub Release note
 
 ## [Unreleased]
 
+### Security
+
+- **Every route now requires the caller to be signed in through Kubuno.** The module used to answer anyone who
+  could reach its port: transcription (`/transcribe`, the `/stream` WebSocket) was open, and the administration
+  routes (enable/disable, settings, model downloads and deletions) trusted a plain `X-Kubuno-User-Role: admin`
+  header that any local process could send. Requests must now carry the short-lived identity token the core signs
+  for this module (`X-Kubuno-Auth`, verified with `kubuno-modauth`); the administrator role is read from that token
+  only, and a module started without its internal secret refuses everything but `/health`.
+- **Model names are checked before they become file names.** Deleting a model refuses an engine or model name
+  containing anything but letters, digits, `.`, `_` and `-` (no path separators, no `..`).
+
 ### Fixed
 
 - **Identical files on every OS.** The repository now pins line endings to LF

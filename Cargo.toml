@@ -20,6 +20,12 @@ anyhow     = "1"
 hound      = "3"
 whisper-rs = "0.16"
 futures-util = "0.3"
+# Verifies the identity token the core mints for this module (X-Kubuno-Auth).
+kubuno-modauth = { git = "https://github.com/kubuno/core", tag = "modauth-v0.1.0", package = "kubuno-modauth" }
+
+[dev-dependencies]
+uuid  = { version = "1", features = ["v4"] }
+tower = { version = "0.5", features = ["util"] }
 
 [profile.release]
 strip = true
