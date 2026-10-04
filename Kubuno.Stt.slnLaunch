@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "Stt (Kubuno Core + browser)",
+    "Projects": [
+      {
+        "Path": "Kubuno.Stt.Server.rsproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
