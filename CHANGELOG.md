@@ -9,6 +9,13 @@ number at release time, and CI publishes that section as the GitHub Release note
 
 ## [Unreleased]
 
+### Changed
+
+- **The repository is organised by platform.** The server (its sources, Cargo files and Visual Studio
+  project) moves to `server/` with its history, and `mobile/` is reserved for the mobile apps. The `.kbpkg` is
+  unchanged (same files, same contents); the build script, the CI workflows and the Visual Studio solution
+  follow.
+
 ## [0.1.2] - 2026-10-05
 
 ### Changed

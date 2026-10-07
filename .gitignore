@@ -12,8 +12,8 @@ node_modules/
 **/node_modules/
 
 # Frontend — sorties de build
-/frontend/dist/
-/frontend/dist-modules/
+/web/dist/
+/web/dist-modules/
 
 # Paquets Debian générés
 /dist/
@@ -50,3 +50,5 @@ nohup.out
 
 node_modules
 
+# Visual Studio per-machine state
+.vs/

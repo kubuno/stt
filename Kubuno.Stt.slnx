@@ -3,6 +3,9 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/Server/">
-    <Project Path="Kubuno.Stt.Server.rsproj" Type="6c7c4cb5-6e36-4c6f-9c6f-9c6e9b4d4c13" />
+    <Project Path="server/Kubuno.Stt.Server.rsproj" Type="6c7c4cb5-6e36-4c6f-9c6f-9c6e9b4d4c13" />
+  </Folder>
+  <Folder Name="/Mobile/">
+    <File Path="mobile/README.md" />
   </Folder>
 </Solution>

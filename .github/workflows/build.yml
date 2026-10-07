@@ -25,7 +25,9 @@ jobs:
       # ── Backend (Rust) — whisper.cpp is built by whisper-rs (cmake preinstalled) ──
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with: { workspaces: server }
       - name: cargo build
+        working-directory: server
         env:
           SQLX_OFFLINE: "true"
           RUSTFLAGS: "-L /usr/local/lib"
