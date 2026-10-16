@@ -1,9 +1,9 @@
-//! Kubuno STT module — self-hosted speech-to-text.
+//! Kubuno STT module - self-hosted speech-to-text.
 //!
 //! One in-process engine (no execve): Whisper (whisper.cpp), compiled from
 //! source and linked statically, so the module ships as a self-contained
 //! `.kbpkg` on Linux/Windows/macOS with no external native library to install.
-//! Whisper is multilingual — one model serves every language. Models are
+//! Whisper is multilingual - one model serves every language. Models are
 //! downloaded/deleted on demand; audio never leaves the server.
 
 mod auth;
@@ -41,14 +41,14 @@ fn default_engine() -> String { "whisper".into() }
 #[derive(Clone, Serialize, Deserialize)]
 struct LangCfg {
     // Whisper is the only engine now. Kept (defaulting to "whisper") so older
-    // config files — including ones that named "vosk" — still deserialize.
+    // config files - including ones that named "vosk" - still deserialize.
     #[serde(default = "default_engine")] engine: String,
     model:  String,   // model id
     // Per-language options (all default to a sensible value, so older config
     // files lacking them still deserialize).
     #[serde(default = "default_true")]  enabled: bool,            // offer this language
     #[serde(default)]                   initial_prompt: String,   // Whisper: vocabulary/spelling bias
-    #[serde(default)]                   grammar: String,          // legacy (Vosk word list) — unused, kept for config back-compat
+    #[serde(default)]                   grammar: String,          // legacy (Vosk word list) - unused, kept for config back-compat
     #[serde(default)]                   normalize_numbers: bool,  // spoken numbers → digits
     #[serde(default = "default_true")]  punctuation: bool,        // keep punctuation (Whisper); strip when false
     #[serde(default)]                   translate: bool,          // Whisper: translate to English
@@ -181,7 +181,7 @@ fn installed(state: &AppState) -> HashMap<String, Vec<String>> {
 }
 
 /// Resolve (LangCfg, model_path) for a language: the configured Whisper model if
-/// present, else any installed Whisper model (multilingual — one serves every
+/// present, else any installed Whisper model (multilingual - one serves every
 /// language).
 fn resolve_for_lang(state: &AppState, lang: &str) -> anyhow::Result<(LangCfg, PathBuf)> {
     let cfg = state.config.lock().expect("config poisoned").clone();
@@ -281,7 +281,7 @@ fn transcribe_wav(state: &AppState, lang: &str, wav: &[u8]) -> anyhow::Result<St
 
 async fn health() -> impl IntoResponse { Json(json!({ "status": "ok" })) }
 
-/// Public status — lets the shell decide whether to show the mic button and how
+/// Public status - lets the shell decide whether to show the mic button and how
 /// to drive the silence auto-stop. `?lang=` reports per-language availability.
 async fn status(State(state): State<AppState>, Query(q): Query<LangQuery>) -> impl IntoResponse {
     let enabled = match q.lang {
@@ -582,7 +582,7 @@ fn register_payload() -> serde_json::Value {
         "routes":            [{ "method": "*", "path": "/*" }],
         "sidebar_items":     [],
         "subscribed_events": [],
-        // Infrastructure interne (alimente la recherche vocale du core) —
+        // Infrastructure interne (alimente la recherche vocale du core) -
         // enregistré pour le routage mais masqué de la liste admin des modules.
         "internal":          true,
     })
@@ -621,7 +621,7 @@ async fn main() -> anyhow::Result<()> {
     let data_dir = std::env::var("KUBUNO_DATA_DIR").map(PathBuf::from)
         .unwrap_or_else(|_| module_dir.clone());
     // Models live in the WRITABLE data dir (same filesystem) so the module can
-    // download/extract them at runtime — the install dir (/usr/lib) is read-only.
+    // download/extract them at runtime - the install dir (/usr/lib) is read-only.
     let state = AppState {
         models_dir: data_dir.join("models"),
         data_dir,

@@ -1,17 +1,17 @@
 # ─────────────────────────────────────────────────────────────
-# Kubuno — fichiers NON versionnés (artefacts de build, données, secrets)
+# Kubuno - fichiers NON versionnés (artefacts de build, données, secrets)
 # Seul le CODE SOURCE est committé. Régénérables = exclus.
 # ─────────────────────────────────────────────────────────────
 
-# Rust — artefacts de compilation
+# Rust - artefacts de compilation
 /target/
 **/target/
 
-# Node — dépendances
+# Node - dépendances
 node_modules/
 **/node_modules/
 
-# Frontend — sorties de build
+# Frontend - sorties de build
 /web/dist/
 /web/dist-modules/
 
@@ -19,7 +19,7 @@ node_modules/
 /dist/
 *.deb
 
-# build_deb.sh — état local
+# build_deb.sh - état local
 /.build_state
 /.build_number
 

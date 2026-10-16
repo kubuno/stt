@@ -1,5 +1,5 @@
 name: Build
-# KEEP-BESPOKE — not generated from _tools/packaging/module_build.yml.
+# KEEP-BESPOKE - not generated from _tools/packaging/module_build.yml.
 # The Speech-to-Text module builds whisper.cpp from source, so its Linux .kbpkg
 # needs a native setup the generic template does not provide. It also has no
 # frontend. Keep this file; deploy_packaging.sh skips regenerating a build.yml
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
-      # ── Backend (Rust) — whisper.cpp is built by whisper-rs (cmake preinstalled) ──
+      # ── Backend (Rust) - whisper.cpp is built by whisper-rs (cmake preinstalled) ──
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: server }

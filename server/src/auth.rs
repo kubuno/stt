@@ -2,7 +2,7 @@
 //!
 //! The module listens on loopback and is reached through the core's proxy, which
 //! mints a short-lived identity token (`X-Kubuno-Auth`, see `kubuno-modauth`)
-//! signed with this module's internal secret — on plain HTTP requests and on the
+//! signed with this module's internal secret - on plain HTTP requests and on the
 //! WebSocket handshake of `/stream` alike. Every route but `/health` requires
 //! that token: the plain `X-Kubuno-User-*` headers are never trusted, since any
 //! local process reaching the port could forge them, and an anonymous caller
